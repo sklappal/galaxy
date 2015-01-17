@@ -3,7 +3,7 @@ function App() {
   var bgColor = "#000000";
   var G_FACTOR = 1.0;
   
-  var INITIAL_SIMULATIONSPEED = 5.0;
+  var INITIAL_SIMULATIONSPEED = 15.0;
   var INITIAL_CAMERAZOOM = 1.0;
   var INITIAL_CAMERAPOS = vec2.fromValues(0.0, 0.0);
   
@@ -39,7 +39,8 @@ function App() {
     this.bodies.push(new body(vec2.fromValues(170, 0), vec2.fromValues(0, 5.5), 150, getId()));
     this.bodies.push(new body(vec2.fromValues(179, 0), vec2.fromValues(0, 9.6), 0.1, getId()));
 
-    this.bodies.push(new body(vec2.fromValues(50, 0), vec2.fromValues(0, 2.5), 100, getId()));
+
+    this.bodies.push(new body(vec2.fromValues(-370, -300), vec2.fromValues(2, -2), 300, getId()));
   }
 
   function RandomBody(i)
@@ -325,13 +326,13 @@ function App() {
     if (event.keyCode == 109) {
     // -
       if (simulationSpeed > 0.0) {
-        simulationSpeed -= 0.1;
+        simulationSpeed -= 1;
       }
       simulationSpeed = Math.max(0.0, simulationSpeed);
     }
     if (event.keyCode == 107) {
       // +
-      simulationSpeed += 0.1;
+      simulationSpeed += 1;
     }
     if (event.keyCode >= 49 && event.keyCode <= 57)
     {

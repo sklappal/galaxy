@@ -13,7 +13,7 @@ function body(pos, vel, mass, id)
     this.trailStart = 0;
     this.trailIndex = 0;
 
-    this.TRAIL_LENGTH = 500;
+    this.TRAIL_LENGTH = 400;
 
     this.copy = function(newPos, newVel, newAcc, addTrail)
     {
