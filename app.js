@@ -1,6 +1,5 @@
 function App() {
   
-  var bgColor = "#000000";
   var G_FACTOR = 1.0;
   
   var INITIAL_SIMULATIONSPEED = 15.0;
@@ -31,40 +30,64 @@ function App() {
     };
   }();
 
-  function InitBodies()
-  { 
-    this.bodies = [];
+
+  function AddStableSystem()
+  {
     this.bodies.push(new body(vec2.fromValues(0, 0), vec2.fromValues(0, 0), 5000, getId()));   
     
     this.bodies.push(new body(vec2.fromValues(170, 0), vec2.fromValues(0, 5.5), 150, getId()));
     this.bodies.push(new body(vec2.fromValues(179, 0), vec2.fromValues(0, 9.6), 0.1, getId()));
 
-
     this.bodies.push(new body(vec2.fromValues(-370, -300), vec2.fromValues(2, -2), 300, getId()));
+    this.bodies.push(new body(vec2.fromValues(-350, -292), vec2.fromValues(4.0, -4.0), 0.5, getId()));
+    
   }
 
-  function RandomBody(i)
+  function AddRandomBodies()
+  {
+    this.bodies.push(new body(vec2.fromValues(0, 0), vec2.fromValues(0, 0), 3000, getId()));   
+    for (var i = 0; i < 250; i++)
+    {
+      this.bodies.push(RandomBody());
+    }
+  }
+
+  function InitBodies()
+  { 
+    this.bodies = [];
+   // AddRandomBodies();
+    AddStableSystem();
+  }
+
+  function RandomBody()
   {
     var size = 1 / ( 1.0 - Math.random() ) ;
-    return new body(RandomPosition(), RandomVelocity(), size, i);
+    return new body( RandomPosition(), RandomVelocity(), size, getId());
   }
 
   function RandomPosition()
   {
     var out = vec2.create();
-    return vec2.random(out, 100.0 * Math.random());
+    return vec2.random(out, Math.random() * 400);
   }
 
   function RandomVelocity()
   {
    var out = vec2.create();
-    return vec2.random(out, Math.random() * 10.0 + 0.5); 
+    return vec2.random(out, Math.random() * 1.0 + 0.5); 
   }
 
   function Draw() 
   {
-    GetContext().clearRect(0, 0, Width(), Height());
+    var grd = GetContext().createRadialGradient(Width() / 2, Height() / 2, MINIMUM_OF_CANVAS_WIDTHHEIGHT * 0.5, Width() / 2, Height() / 2, MINIMUM_OF_CANVAS_WIDTHHEIGHT);
+    grd.addColorStop(0, '#000000');
+    grd.addColorStop(1, '#000008');
+    var ctx = GetContext();
 
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, Width(), Height());
+
+    var offset = vec2.create();
     if (follow != -1 && follow < this.bodies.length)
     {
       cameraPos = vec2.clone(this.bodies[follow].pos);
@@ -79,6 +102,12 @@ function App() {
 
   function DrawBody(body)
   {
+    var pos = WorldToCanvas(Camera(body.pos));
+    if (pos[0] < 0 || pos[1] < 0 || pos[0] > Width() || pos[1] > Height())
+    {
+      return;
+    }
+
     DrawFilledCircle(body.pos, body.radius);
 
     if (DRAW_TRAIL)
@@ -107,7 +136,11 @@ function App() {
     ctx.beginPath();
     var counterClockwise = false;
     ctx.arc(poscanvas[0], poscanvas[1], radiuscanvas, 0, 2 * Math.PI, false);
-    ctx.fillStyle = "rgb(255, 255, 255)";
+    var gradient = ctx.createRadialGradient(poscanvas[0], poscanvas[1], radiuscanvas * 0.85, poscanvas[0], poscanvas[1], radiuscanvas);
+    gradient.addColorStop(0, '#FFFFFF');    
+    gradient.addColorStop(1, '#000000');
+
+    ctx.fillStyle = gradient;
     ctx.fill();
   }
 
@@ -262,6 +295,7 @@ function App() {
     cameraZoom = INITIAL_CAMERAZOOM;
     cameraPos = vec2.clone(INITIAL_CAMERAPOS)
     simulationSpeed = INITIAL_SIMULATIONSPEED;
+    DRAW_TRAIL = false;
     follow = -1;
   }
 
@@ -269,9 +303,7 @@ function App() {
     GetCanvas().onmousedown = OnMouseDownCB;
     GetCanvas().onmouseup = OnMouseUpCB;
     GetCanvas().onmousemove = OnMouseMoveCB;
-    GetCanvas().style.backgroundColor = bgColor;
-    document.body.style.backgroundColor = "#202020";
-     if (window.addEventListener)
+    if (window.addEventListener)
       /** DOMMouseScroll is for mozilla. */
       window.addEventListener('DOMMouseScroll', OnWheelCB, false);
     /** IE/Opera. */
