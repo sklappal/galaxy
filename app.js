@@ -112,20 +112,27 @@ function App() {
 
     if (DRAW_TRAIL)
     {
-      for (var i = 0; i < body.trail.length; i++)
-      {
-        DrawPixel(body.GetTrailPoint(i));
-      }
+      DrawTrail(body);  
     }
   }
 
-  function DrawPixel(posworld)
+  function DrawTrail(body)
   {
+    if (body.trail.length == 1)
+    {
+      return;
+    }
     var ctx = GetContext();
-    var poscanvas = WorldToCanvas(Camera(posworld));
+    var poscanvas = WorldToCanvas(Camera(body.GetTrailPoint(0)));    
     ctx.beginPath();
-    ctx.fillStyle = "rgb(255, 255, 255)";
-    ctx.fillRect(poscanvas[0], poscanvas[1], 1, 1);
+    ctx.moveTo(poscanvas[0], poscanvas[1]);
+    for (var i = 1; i < body.trail.length; i++)
+    {
+      poscanvas = WorldToCanvas(Camera(body.GetTrailPoint(i)));
+      ctx.lineTo(poscanvas[0], poscanvas[1]);
+    }
+    ctx.strokeStyle = "rgb(255, 255, 255)";
+    ctx.stroke();  
   }
 
   function DrawFilledCircle(posworld, radiusworld) {
@@ -219,7 +226,7 @@ function App() {
 
   var frametime = 0.016;
   var step = 0;
-  var trailFrequency = 20;
+  var trailFrequency = 30;
   function Simulate() 
   { 
     var elapsed = simulationSpeed * frametime;

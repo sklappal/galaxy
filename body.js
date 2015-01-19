@@ -9,26 +9,20 @@ function body(pos, vel, mass, id)
     this.id = id;
     this.eaten = 0.0;
 
-    this.trail = [this.pos];    
-    this.trailStart = 0;
+    this.trail = [this.pos];
     this.trailIndex = 0;
 
-    this.TRAIL_LENGTH = 400;
+    this.TRAIL_LENGTH = 300;
 
     this.copy = function(newPos, newVel, newAcc, addTrail)
     {
         var ret = new body(newPos, newVel, this.mass + this.eaten, this.id);
         ret.acc = newAcc;
         ret.trail = this.trail;
-        ret.trailStart = this.trailStart;
         ret.trailIndex = this.trailIndex;
         if (addTrail)
         {
             ret.trailIndex = (this.trailIndex + 1) % this.TRAIL_LENGTH;
-            if (ret.trailIndex == 0)
-            {
-                ret.trailStart = (ret.trailStart + 1) % this.TRAIL_LENGTH;
-            }
             ret.trail[ret.trailIndex] = this.pos;
         }
         return ret;
@@ -36,7 +30,7 @@ function body(pos, vel, mass, id)
 
     this.GetTrailPoint = function(i)
     {
-        return this.trail[(this.trailStart + i) % this.TRAIL_LENGTH];
+        return this.trail[(this.trailIndex - i + this.TRAIL_LENGTH) % this.TRAIL_LENGTH];
     }
 
 }
