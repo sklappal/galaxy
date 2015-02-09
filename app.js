@@ -4,17 +4,18 @@ function App() {
   
   var INITIAL_SIMULATIONSPEED = 15.0;
   var INITIAL_CAMERAZOOM = 1.0;
-  var INITIAL_CAMERAPOS = vec2.fromValues(0.0, 0.0);
+  var INITIAL_CAMERAPOS = vec3.fromValues(0.0, 0.0, 0.0);
   
   var simulationSpeed = INITIAL_SIMULATIONSPEED;
   var cameraZoom = INITIAL_CAMERAZOOM;
-  var cameraPos = vec2.clone(INITIAL_CAMERAPOS);
+  var cameraPos = vec3.clone(INITIAL_CAMERAPOS);
 
   var SIZE = 100.0;
   var SIZE_2 =  (2 * SIZE);
   var MINIMUM_OF_CANVAS_WIDTHHEIGHT;
   var CANVAS_X_OFFSET;
   var CANVAS_Y_OFFSET;
+  var DEBUG_MODE = false;
   
   var follow = -1;
 
@@ -33,19 +34,19 @@ function App() {
 
   function AddStableSystem()
   {
-    this.bodies.push(new body(vec2.fromValues(0, 0), vec2.fromValues(0, 0), 5000, getId()));   
+    this.bodies.push(new body(vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.0, 0.0, 0.0), 5000, getId()));   
     
-    this.bodies.push(new body(vec2.fromValues(170, 0), vec2.fromValues(0, 5.5), 150, getId()));
-    this.bodies.push(new body(vec2.fromValues(179, 0), vec2.fromValues(0, 9.6), 0.1, getId()));
+    this.bodies.push(new body(vec3.fromValues(170, 0.0, 0.0), vec3.fromValues(0.0, 5.5, 0.0), 150, getId()));
+    this.bodies.push(new body(vec3.fromValues(181, 0.0, 0.0), vec3.fromValues(0.0, 9.6, 0.0), 0.1, getId()));
 
-    this.bodies.push(new body(vec2.fromValues(-370, -300), vec2.fromValues(2, -2), 300, getId()));
-    this.bodies.push(new body(vec2.fromValues(-350, -292), vec2.fromValues(4.0, -4.0), 0.5, getId()));
+    this.bodies.push(new body(vec3.fromValues(-370, -300, 0.0), vec3.fromValues(2, -2, 0.0), 300, getId()));
+    this.bodies.push(new body(vec3.fromValues(-350, -292, 0.0), vec3.fromValues(4.0, -4.0, 0.0), 0.5, getId()));
     
   }
 
   function AddRandomBodies()
   {
-    this.bodies.push(new body(vec2.fromValues(0, 0), vec2.fromValues(0, 0), 3000, getId()));   
+    this.bodies.push(new body(vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.0, 0.0, 0.0), 3000, getId()));   
     for (var i = 0; i < 250; i++)
     {
       this.bodies.push(RandomBody());
@@ -67,14 +68,14 @@ function App() {
 
   function RandomPosition()
   {
-    var out = vec2.create();
-    return vec2.random(out, Math.random() * 400);
+    var out = vec3.create();
+    return vec3.random(out, Math.random() * 400);
   }
 
   function RandomVelocity()
   {
-   var out = vec2.create();
-    return vec2.random(out, Math.random() * 1.0 + 0.5); 
+   var out = vec3.create();
+    return vec3.random(out, Math.random() * 1.0 + 0.5); 
   }
 
   function Draw() 
@@ -87,28 +88,46 @@ function App() {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, Width(), Height());
 
-    var offset = vec2.create();
+    var offset = vec3.create();
     if (follow != -1 && follow < this.bodies.length)
     {
-      cameraPos = vec2.clone(this.bodies[follow].pos);
+      cameraPos = vec3.fromValues(0.0, 0.0, 0.0);
     }
 
     for (var i = 0; i < this.bodies.length; i++)
     {
       var body = this.bodies[i];
-      DrawBody(body);
+      DrawBody(body, i == follow);      
     }
   }
 
-  function DrawBody(body)
+  function AdjustForFollow(pos)
   {
-    var pos = WorldToCanvas(Camera(body.pos));
+    if (follow != -1 && follow < this.bodies.length)
+    {
+      pos = vec3.sub(vec3.create(), pos, this.bodies[follow].pos);
+    }
+    return pos;
+  }
+
+  function AdjustForFollowTrail(pos, i)
+  {
+    if (follow != -1 && follow < this.bodies.length)
+    {
+      pos = vec3.sub(vec3.create(), pos, this.bodies[follow].GetTrailPoint(i));
+    }
+    return pos;
+  }
+
+  function DrawBody(body, drawOutline)
+  {
+    var pos = WorldToCanvas(Camera(AdjustForFollow(body.pos)));
     if (pos[0] < 0 || pos[1] < 0 || pos[0] > Width() || pos[1] > Height())
     {
       return;
     }
 
-    DrawFilledCircle(body.pos, body.radius);
+    DrawFilledCircle(AdjustForFollow(body.pos), body.radius, drawOutline);
 
     if (DRAW_TRAIL)
     {
@@ -123,19 +142,19 @@ function App() {
       return;
     }
     var ctx = GetContext();
-    var poscanvas = WorldToCanvas(Camera(body.GetTrailPoint(0)));    
+    var poscanvas = WorldToCanvas(Camera(AdjustForFollowTrail(body.GetTrailPoint(0), 0)));    
     ctx.beginPath();
     ctx.moveTo(poscanvas[0], poscanvas[1]);
     for (var i = 1; i < body.trail.length; i++)
     {
-      poscanvas = WorldToCanvas(Camera(body.GetTrailPoint(i)));
+      poscanvas = WorldToCanvas(Camera(AdjustForFollowTrail(body.GetTrailPoint(i), i)));
       ctx.lineTo(poscanvas[0], poscanvas[1]);
     }
     ctx.strokeStyle = "rgb(255, 255, 255)";
-    ctx.stroke();  
+    ctx.stroke();
   }
 
-  function DrawFilledCircle(posworld, radiusworld) {
+  function DrawFilledCircle(posworld, radiusworld, drawOutline) {
     var ctx = GetContext();
     var poscanvas = WorldToCanvas(Camera(posworld));
     var radius = radiusworld / cameraZoom;
@@ -149,6 +168,23 @@ function App() {
 
     ctx.fillStyle = gradient;
     ctx.fill();
+
+    if (drawOutline)
+    {
+      ctx.beginPath();
+      var counterClockwise = false;
+      ctx.arc(poscanvas[0], poscanvas[1], radiuscanvas + 2, 0, 2 * Math.PI, false);
+      ctx.strokeStyle = "rgb(100, 0, 100)";
+      ctx.stroke();
+    }
+
+    if (DEBUG_MODE)
+    {      
+      ctx.fillStyle = "white";
+      var text = "" + posworld[0].toFixed(0) + " " + posworld[1].toFixed(0) + " " + posworld[2].toFixed(0);      
+      ctx.fillText(text, poscanvas[0] + radiuscanvas, poscanvas[1] + radiuscanvas);
+    }
+
   }
 
   //[-SIZE, SIZE] x [-SIZE, SIZE] => [CANVAS_X_OFFSET, MINIMUM_OF_CANVAS_WIDTHHEIGHT + CANVAS_X_OFFSET] x [CANVAS_Y_OFFSET, MINIMUM_OF_CANVAS_WIDTHHEIGHT + CANVAS_Y_OFFSET] 
@@ -160,7 +196,7 @@ function App() {
 
   function CanvasToWorld(pos)
   {
-    return vec2.fromValues( (( (pos[0] - CANVAS_X_OFFSET) * SIZE_2) / MINIMUM_OF_CANVAS_WIDTHHEIGHT) - SIZE,  (((pos[1] - CANVAS_Y_OFFSET) * SIZE_2) / MINIMUM_OF_CANVAS_WIDTHHEIGHT) - SIZE);
+    return vec3.fromValues( (( (pos[0] - CANVAS_X_OFFSET) * SIZE_2) / MINIMUM_OF_CANVAS_WIDTHHEIGHT) - SIZE,  (((pos[1] - CANVAS_Y_OFFSET) * SIZE_2) / MINIMUM_OF_CANVAS_WIDTHHEIGHT) - SIZE, 0.0);
   }
 
   function WorldToCanvasForLength(len)
@@ -170,36 +206,36 @@ function App() {
  
   function Camera(pos)
   {
-    var ret = vec2.create();    
-    vec2.sub(ret, pos, cameraPos);
-    vec2.scale(ret, ret, 1.0 / cameraZoom);
+    var ret = vec3.create();
+    vec3.sub(ret, pos, cameraPos);
+    vec3.scale(ret, ret, 1.0 / cameraZoom);
     return ret;
   }
 
   function InverseCamera(pos)
   {
-    var ret = vec2.create();        
-    vec2.scale(ret, pos, cameraZoom);
-    vec2.add(ret, ret, cameraPos);
+    var ret = vec3.create();        
+    vec3.scale(ret, pos, cameraZoom);
+    vec3.add(ret, ret, cameraPos);
     return ret;
   }
 
   var prevPhysTime = undefined;
   var curPhysTime = new Date().getTime();
-  
+  var physicsTimeStep = 1000/100;
   function tickPhysics() {
     prevPhysTime = curPhysTime;
     curPhysTime = new Date().getTime();
     elapsed = curPhysTime-prevPhysTime;
     
     Simulate();
-    setTimeout(tickPhysics, 1000/60);
+    setTimeout(tickPhysics, physicsTimeStep);
   }
    
 
   function GetAcceleration(body, newPos)
   {
-    var acc = vec2.create();
+    var acc = vec3.create();
     for (var i = 0; i < this.bodies.length; i++)
     {
       var body2 = this.bodies[i];
@@ -208,35 +244,32 @@ function App() {
         continue;
       }
       
-      var to2 = vec2.create();
-      vec2.sub(to2, body2.pos, newPos);
-      var distSqr = vec2.squaredLength(to2);
+      var to2 = vec3.create();
+      vec3.sub(to2, body2.pos, newPos);
+      var distSqr = vec3.squaredLength(to2);
       var scaler = body.mass * body2.mass / distSqr * G_FACTOR;
-      vec2.normalize(to2, to2);
-      vec2.scale(to2, to2, scaler);
+      vec3.normalize(to2, to2);
+      vec3.scale(to2, to2, scaler);
 
-      vec2.add(acc, acc, to2);
+      vec3.add(acc, acc, to2);
     }
 
-    vec2.scale(acc, acc, 1.0 / body.mass);
+    vec3.scale(acc, acc, 1.0 / body.mass);
 
     return acc;
   }
 
-
-  var frametime = 0.016;
   var step = 0;
   var trailFrequency = 30;
   function Simulate() 
   { 
-    var elapsed = simulationSpeed * frametime;
+    var elapsed = simulationSpeed * physicsTimeStep / 1000;
     
     step += simulationSpeed;
     if (step > trailFrequency)
     {
       step = 0;
-    }
-    
+    }    
 
     var elapsedSqr = elapsed * elapsed;
     var newBodies = [];
@@ -252,7 +285,7 @@ function App() {
           var otherBody = this.bodies[j];
           if (body.mass < otherBody.mass)
           {
-            if (vec2.sqrDist(body.pos, otherBody.pos) < otherBody.squaredRadius)
+            if (vec3.sqrDist(body.pos, otherBody.pos) < otherBody.squaredRadius)
             {
               remove = true;
               otherBody.eaten += body.mass;
@@ -267,18 +300,18 @@ function App() {
       }
 
       // 1) of verlet : x(t + delta) = x(t) + v(t) * delta + 0.5 * a(t) * deltaSqr
-      var newPos = vec2.clone(body.pos);
-      vec2.scaleAndAdd(newPos, newPos, body.vel, elapsed);
-      vec2.scaleAndAdd(newPos, newPos, body.acc,  0.5 * elapsedSqr);
+      var newPos = vec3.clone(body.pos);
+      vec3.scaleAndAdd(newPos, newPos, body.vel, elapsed);
+      vec3.scaleAndAdd(newPos, newPos, body.acc,  0.5 * elapsedSqr);
 
       // 2) a(t + delta) = potential(x (t + delta))
       var newAcc = GetAcceleration(body, newPos);
       
       // 3) v(t + delta) = v(t) + 0.5 * (a(t) + a(t + delta)) * delta
-      var newVel = vec2.clone(body.vel);
-      var accTerm = vec2.create();
-      vec2.add(accTerm, body.acc, newAcc);
-      vec2.scaleAndAdd(newVel, newVel, accTerm, 0.5 * elapsed);
+      var newVel = vec3.clone(body.vel);
+      var accTerm = vec3.create();
+      vec3.add(accTerm, body.acc, newAcc);
+      vec3.scaleAndAdd(newVel, newVel, accTerm, 0.5 * elapsed);
 
       var newBody = body.copy(newPos, newVel, newAcc, step == 0);
 
@@ -300,7 +333,7 @@ function App() {
   {
     InitBodies();
     cameraZoom = INITIAL_CAMERAZOOM;
-    cameraPos = vec2.clone(INITIAL_CAMERAPOS)
+    cameraPos = vec3.clone(INITIAL_CAMERAPOS)
     simulationSpeed = INITIAL_SIMULATIONSPEED;
     DRAW_TRAIL = false;
     follow = -1;
@@ -316,6 +349,7 @@ function App() {
     /** IE/Opera. */
     window.onmousewheel = document.onmousewheel = OnWheelCB;
     window.onkeydown = OnKeyDown;
+    window.onkeyup = OnKeyUp;
 
     window.onresize = Resize;
     Resize();
@@ -389,6 +423,19 @@ function App() {
       // r
       Reset();
     }
+    if (event.keyCode == 68)
+    {
+      // d
+      DEBUG_MODE = true;
+    }
+  }
+
+  function OnKeyUp(event) {   
+    if (event.keyCode == 68)
+    {
+      // d
+      DEBUG_MODE = false;
+    }
   }
 
   function OnMouseUp(button) {
@@ -400,12 +447,12 @@ function App() {
     curMouseCanvas = coords;
     if (dragging)
     {
-      var diff = vec2.create();
+      var diff = vec3.create();
       var prevWorld = CanvasToWorld(prevPos);
       var curWorld = CanvasToWorld(curMouseCanvas);
-      vec2.sub(diff, prevWorld, curWorld);
-      vec2.scale(diff, diff, cameraZoom);
-      vec2.add(cameraPos, cameraPos, diff);
+      vec3.sub(diff, prevWorld, curWorld);
+      vec3.scale(diff, diff, cameraZoom);
+      vec3.add(cameraPos, cameraPos, diff);
     }
   }
   
@@ -440,7 +487,7 @@ function App() {
     }
 
     var curMouseWorld = CanvasToWorld(curMouseCanvas);
-    vec2.scaleAndAdd(cameraPos, cameraPos, curMouseWorld, prevCameraZoom - cameraZoom);
+    vec3.scaleAndAdd(cameraPos, cameraPos, curMouseWorld, prevCameraZoom - cameraZoom);
 
   }
 

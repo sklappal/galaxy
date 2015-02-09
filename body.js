@@ -2,7 +2,7 @@ function body(pos, vel, mass, id)
 {
     this.pos = pos;
     this.vel = vel;
-    this.acc = vec2.fromValues(0.0, 0.0);
+    this.acc = vec3.fromValues(0.0, 0.0, 0.0);
     this.mass = mass;
     this.radius = Math.pow(mass / 4.0, 1.0 / 3.0);
     this.squaredRadius = this.radius*this.radius;
