@@ -5,6 +5,10 @@ function App() {
   var INITIAL_SIMULATIONSPEED = 15.0;
   var INITIAL_CAMERAZOOM = 1.0;
   var INITIAL_CAMERAPOS = vec3.fromValues(0.0, 0.0, 0.0);
+  var PHYSICS_TIME_STEP = 10; // 100 fps
+  var TARGET_FPS = 50.0;
+  var TARGET_FRAME_TIME = 1000 / TARGET_FPS;
+
   
   var simulationSpeed = INITIAL_SIMULATIONSPEED;
   var cameraZoom = INITIAL_CAMERAZOOM;
@@ -151,6 +155,7 @@ function App() {
       ctx.lineTo(poscanvas[0], poscanvas[1]);
     }
     ctx.strokeStyle = "rgb(255, 255, 255)";
+    ctx.lineWidth = 0.1;
     ctx.stroke();
   }
 
@@ -158,7 +163,7 @@ function App() {
     var ctx = GetContext();
     var poscanvas = WorldToCanvas(Camera(posworld));
     var radius = radiusworld / cameraZoom;
-    var radiuscanvas = WorldToCanvasForLength(radius);
+    var radiuscanvas = Math.max(WorldToCanvasForLength(radius), 2.0);
     ctx.beginPath();
     var counterClockwise = false;
     ctx.arc(poscanvas[0], poscanvas[1], radiuscanvas, 0, 2 * Math.PI, false);
@@ -174,6 +179,7 @@ function App() {
       ctx.beginPath();
       var counterClockwise = false;
       ctx.arc(poscanvas[0], poscanvas[1], radiuscanvas + 2, 0, 2 * Math.PI, false);
+      ctx.lineWidth = 1.0;
       ctx.strokeStyle = "rgb(100, 0, 100)";
       ctx.stroke();
     }
@@ -220,19 +226,6 @@ function App() {
     return ret;
   }
 
-  var prevPhysTime = undefined;
-  var curPhysTime = new Date().getTime();
-  var physicsTimeStep = 1000/100;
-  function tickPhysics() {
-    prevPhysTime = curPhysTime;
-    curPhysTime = new Date().getTime();
-    elapsed = curPhysTime-prevPhysTime;
-    
-    Simulate();
-    setTimeout(tickPhysics, physicsTimeStep);
-  }
-   
-
   function GetAcceleration(body, newPos)
   {
     var acc = vec3.create();
@@ -263,7 +256,7 @@ function App() {
   var trailFrequency = 30;
   function Simulate() 
   { 
-    var elapsed = simulationSpeed * physicsTimeStep / 1000;
+    var elapsed = simulationSpeed * PHYSICS_TIME_STEP * 0.001;
     
     step += simulationSpeed;
     if (step > trailFrequency)
@@ -320,12 +313,21 @@ function App() {
     this.bodies = newBodies;
   }
   
+  var accumulator = 0;
   function tick() {
     prevDrawTime = curDrawTime;
     curDrawTime = new Date().getTime();
-    
+    var frameTime = curDrawTime - prevDrawTime;
+
+    accumulator += frameTime;
+    while (accumulator >= PHYSICS_TIME_STEP)
+    {
+      Simulate();
+      accumulator -= PHYSICS_TIME_STEP;
+    }
     Draw();
     DrawOverlay();
+    
     requestAnimFrame(tick);
   }
 
@@ -355,7 +357,6 @@ function App() {
     Resize();
     Reset();
     tick();
-    tickPhysics();
   }
     
   function GetContext() {
@@ -531,7 +532,7 @@ function App() {
   }
   
   var curDrawTime = new Date().getTime();
-  var prevDrawTime = 0;
+  var prevDrawTime = new Date().getTime();
     
   function GetFrameTime() {
     return curDrawTime - prevDrawTime;
