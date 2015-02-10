@@ -352,6 +352,9 @@ function App() {
     window.onmousewheel = document.onmousewheel = OnWheelCB;
     window.onkeydown = OnKeyDown;
     window.onkeyup = OnKeyUp;
+    window.addEventListener("touchstart", OnTouchStartCB, false);
+    window.addEventListener("touchmove", OnTouchMoveCB, false);
+    window.addEventListener("touchend", OnTouchEndCB, false);
 
     window.onresize = Resize;
     Resize();
@@ -391,7 +394,7 @@ function App() {
   }
   
   var dragging = false;
-  function OnMouseDown(coords, button) {
+  function OnPointerStart(coords) {
     dragging = true;
     follow = -1;
   }
@@ -439,11 +442,11 @@ function App() {
     }
   }
 
-  function OnMouseUp(button) {
+  function OnPointerEnd() {
     dragging = false;
   }
   
-  function OnMouseMove(coords) {
+  function OnPointerMove(coords) {
     var prevPos = curMouseCanvas;
     curMouseCanvas = coords;
     if (dragging)
@@ -457,22 +460,22 @@ function App() {
     }
   }
   
-  function OnMouseDownCB(ev) {
-    x = ev.clientX;
-    y = ev.clientY;
-    canv = ScreenToCanvas(ev.clientX, ev.clientY);
-    OnMouseDown(canv, ev.which);
+  function OnMouseDownCB(evt) {
+    x = evt.clientX;
+    y = evt.clientY;
+    canv = ScreenToCanvas(x, y);
+    OnPointerStart(canv);
   }
   
-  function OnMouseUpCB(ev) {    
-    OnMouseUp(ev.which);
+  function OnMouseUpCB(evt) {    
+    OnPointerEnd();
   }
   
-  function OnMouseMoveCB(ev) {
-    x = ev.clientX;
-    y = ev.clientY;
-    canv = ScreenToCanvas(ev.clientX, ev.clientY);
-    OnMouseMove(canv);
+  function OnMouseMoveCB(evt) {
+    x = evt.clientX;
+    y = evt.clientY;
+    canv = ScreenToCanvas(x, y);
+    OnPointerMove(canv);
   }
 
 
@@ -493,17 +496,17 @@ function App() {
   }
 
 
-  function OnWheelCB(event) {
+  function OnWheelCB(evt) {
     var delta = 0;
-    if (!event) /* For IE. */
-      event = window.event;
-    if (event.wheelDelta) { /* IE/Opera. */
-      delta = event.wheelDelta/120;
-    } else if (event.detail) { /** Mozilla case. */
+    if (!evt) /* For IE. */
+      evt = window.event;
+    if (evt.wheelDelta) { /* IE/Opera. */
+      delta = evt.wheelDelta/120;
+    } else if (evt.detail) { /** Mozilla case. */
     /** In Mozilla, sign of delta is different than in IE.
     * Also, delta is multiple of 3.
     */
-      delta = -event.detail/3;
+      delta = -evt.detail/3;
     }
     /** If delta is nonzero, handle it.
     * Basically, delta is now positive if wheel was scrolled up,
@@ -515,9 +518,34 @@ function App() {
     * That might be ugly, but we handle scrolls somehow
     * anyway, so don't bother here..
     */
-    if (event.preventDefault)
-      event.preventDefault();
-    event.returnValue = false;
+    if (evt.preventDefault)
+      evt.preventDefault();
+    evt.returnValue = false;
+  }
+
+  var currentTouch = -1;
+  function OnTouchStartCB(evt)
+  {
+    evt.preventDefault();
+    x = evt.changedTouches[0].clientX;
+    y = evt.changedTouches[0].clientY;
+    canv = ScreenToCanvas(x, y);
+    OnPointerStart(canv);
+
+  }
+
+  function OnTouchEndCB(evt)
+  {
+    OnPointerEnd();
+  }
+
+  function OnTouchMoveCB(evt)
+  {
+    evt.preventDefault();
+    x = evt.changedTouches[0].clientX;
+    y = evt.changedTouches[0].clientY;
+    canv = ScreenToCanvas(x, y);
+    OnPointerMove(canv);
   }
 
   function DrawOverlay() {    
