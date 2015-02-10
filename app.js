@@ -5,6 +5,7 @@ function App() {
   var INITIAL_SIMULATIONSPEED = 15.0;
   var INITIAL_CAMERAZOOM = 1.0;
   var INITIAL_CAMERAPOS = vec3.fromValues(0.0, 0.0, 0.0);
+  var INITIAL_DRAW_TRAIL = true;
   var PHYSICS_TIME_STEP = 10; // 100 fps
   var TARGET_FPS = 50.0;
   var TARGET_FRAME_TIME = 1000 / TARGET_FPS;
@@ -23,7 +24,7 @@ function App() {
   
   var follow = -1;
 
-  var DRAW_TRAIL = false;
+  var DRAW_TRAIL = INITIAL_DRAW_TRAIL;
 
   var curMouseCanvas = vec2.create();
 
@@ -155,7 +156,7 @@ function App() {
       ctx.lineTo(poscanvas[0], poscanvas[1]);
     }
     ctx.strokeStyle = "rgb(255, 255, 255)";
-    ctx.lineWidth = 0.1;
+    ctx.lineWidth = 0.3;
     ctx.stroke();
   }
 
@@ -320,6 +321,12 @@ function App() {
     var frameTime = curDrawTime - prevDrawTime;
 
     accumulator += frameTime;
+
+    if (accumulator > 100 * PHYSICS_TIME_STEP) // just skip time
+    {
+      accumulator = 5 * PHYSICS_TIME_STEP;
+    }
+
     while (accumulator >= PHYSICS_TIME_STEP)
     {
       Simulate();
@@ -337,7 +344,7 @@ function App() {
     cameraZoom = INITIAL_CAMERAZOOM;
     cameraPos = vec3.clone(INITIAL_CAMERAPOS)
     simulationSpeed = INITIAL_SIMULATIONSPEED;
-    DRAW_TRAIL = false;
+    DRAW_TRAIL = INITIAL_DRAW_TRAIL;
     follow = -1;
   }
 
@@ -393,12 +400,6 @@ function App() {
     return vec2.fromValues(sx - rect.left, sy - rect.top);
   }
   
-  var dragging = false;
-  function OnPointerStart(coords) {
-    dragging = true;
-    follow = -1;
-  }
-  
   function OnKeyDown(event) {
     if (event.keyCode == 109) {
     // -
@@ -442,6 +443,12 @@ function App() {
     }
   }
 
+  var dragging = false;
+  function OnPointerStart(coords) {
+    dragging = true;
+    follow = -1;
+  }
+
   function OnPointerEnd() {
     dragging = false;
   }
@@ -478,21 +485,19 @@ function App() {
     OnPointerMove(canv);
   }
 
-
-  function HandleWheel(delta) 
+  function HandleZoom(direction, zoomLocationCanvas) 
   {
     var zoomFac = 1.05;
     var invZoom = 1.0 / zoomFac;
     var prevCameraZoom = cameraZoom;
-    if (delta < 0) {
+    if (direction < 0) {
       cameraZoom *= zoomFac;      
     } else {
       cameraZoom *= invZoom;
     }
 
-    var curMouseWorld = CanvasToWorld(curMouseCanvas);
-    vec3.scaleAndAdd(cameraPos, cameraPos, curMouseWorld, prevCameraZoom - cameraZoom);
-
+    var zoomLocationWorld = CanvasToWorld(zoomLocationCanvas);
+    vec3.scaleAndAdd(cameraPos, cameraPos, zoomLocationWorld, prevCameraZoom - cameraZoom);
   }
 
 
@@ -513,7 +518,7 @@ function App() {
     * and negative, if wheel was scrolled down.
     */
     if (delta)
-      HandleWheel(delta);
+      HandleZoom(delta, curMouseCanvas);
     /** Prevent default actions caused by mouse wheel.
     * That might be ugly, but we handle scrolls somehow
     * anyway, so don't bother here..
@@ -523,29 +528,124 @@ function App() {
     evt.returnValue = false;
   }
 
-  var currentTouch = -1;
+  var ongoingTouches = [];
+
+  function ongoingTouchIndexById(idToFind) {
+    for (var i=0; i < ongoingTouches.length; i++) {
+      var id = ongoingTouches[i].identifier;
+      
+      if (id == idToFind) {
+        return i;
+      }
+    }
+    return -1;    // not found
+  }
+
+  function copyTouch(touch) {
+    return { identifier: touch.identifier, clientX: touch.clientX, clientY: touch.clientY };
+  }
+
+  function addTouch(touch)
+  {
+    removeTouch(touch);
+    ongoingTouches.push(copyTouch(touch));
+  }
+
+  function removeTouch(touch)
+  {
+    var index = ongoingTouchIndexById(touch.identifier);
+    if (index != -1)
+    {
+      ongoingTouches.splice(index, 1);  
+    }
+  }
+
   function OnTouchStartCB(evt)
   {
-    evt.preventDefault();
-    x = evt.changedTouches[0].clientX;
-    y = evt.changedTouches[0].clientY;
-    canv = ScreenToCanvas(x, y);
-    OnPointerStart(canv);
+    evt.preventDefault();    
+    for (var i = 0; i < evt.changedTouches.length; i++)
+    {
+      addTouch(evt.changedTouches[i]);
+    }
+    
+    if (evt.changedTouches.length == 3)
+    {
+      follow++;
+      if (follow == this.bodies.length)
+      {
+        follow = -1;
+      }
+    }
 
+    if (ongoingTouches.length == 1)
+    {
+      x = evt.changedTouches[0].clientX;
+      y = evt.changedTouches[0].clientY;
+      canv = ScreenToCanvas(x, y);
+      curMouseCanvas = canv;
+      OnPointerStart(canv);
+    }
+    
+    if (evt.changedTouches.length == 3)
+    {
+      follow++;
+      if (follow == this.bodies.length)
+      {
+        follow = -1;
+      }
+    }
   }
 
   function OnTouchEndCB(evt)
   {
+    for (var i = 0; i < evt.changedTouches.length; i++)
+    {
+      removeTouch(evt.changedTouches[i]);
+    }
+
+    if (ongoingTouches.length < 2)
+    {
+      pinching = false;
+    }
+
     OnPointerEnd();
   }
 
+  var pinching = false;
+  var prevPinchDistance = 0.0;
   function OnTouchMoveCB(evt)
   {
     evt.preventDefault();
-    x = evt.changedTouches[0].clientX;
-    y = evt.changedTouches[0].clientY;
-    canv = ScreenToCanvas(x, y);
-    OnPointerMove(canv);
+    for (var i = 0; i < evt.changedTouches.length; i++)
+    {
+      addTouch(evt.changedTouches[i]);
+    }
+
+    if (ongoingTouches.length == 1)
+    {
+      x = evt.changedTouches[0].clientX;
+      y = evt.changedTouches[0].clientY;
+      canv = ScreenToCanvas(x, y);
+      OnPointerMove(canv);  
+    }
+    
+    if (ongoingTouches.length == 2)
+    {
+      var touch1 = ScreenToCanvas(ongoingTouches[0].clientX, ongoingTouches[0].clientY);
+      var touch2 = ScreenToCanvas(ongoingTouches[1].clientX, ongoingTouches[1].clientY);
+      var midpoint = vec2.add(vec2.create(), touch1, touch2);
+      vec2.scale(midpoint, midpoint, 0.5);
+      var distance = vec2.distance(touch1, touch2);
+
+      if (!pinching)
+      {
+        prevPinchDistance = distance;
+        pinching = true;
+      }
+
+      HandleZoom(distance - prevPinchDistance, midpoint);
+      prevPinchDistance = distance;
+    }
   }
 
   function DrawOverlay() {    
