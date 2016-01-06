@@ -23,6 +23,7 @@ function App() {
   var DEBUG_MODE = false;
   
   var follow = -1;
+  this.autoresize = true;
 
   var DRAW_TRAIL = INITIAL_DRAW_TRAIL;
 
@@ -348,7 +349,7 @@ function App() {
     follow = -1;
   }
 
-  this.Start = function() {
+  this.Start = function(autoresize) {
     GetCanvas().onmousedown = OnMouseDownCB;
     GetCanvas().onmouseup = OnMouseUpCB;
     GetCanvas().onmousemove = OnMouseMoveCB;
@@ -362,7 +363,7 @@ function App() {
     window.addEventListener("touchstart", OnTouchStartCB, false);
     window.addEventListener("touchmove", OnTouchMoveCB, false);
     window.addEventListener("touchend", OnTouchEndCB, false);
-
+    this.autoresize = autoresize;
     window.onresize = Resize;
     Resize();
     Reset();
@@ -388,11 +389,13 @@ function App() {
   }
 
   function Resize() {
-    GetCanvas().width  = window.innerWidth;
-    GetCanvas().height = window.innerHeight;
-    MINIMUM_OF_CANVAS_WIDTHHEIGHT = Math.min(window.innerWidth, window.innerHeight);
-    CANVAS_X_OFFSET = (window.innerWidth - MINIMUM_OF_CANVAS_WIDTHHEIGHT) * 0.5;
-    CANVAS_Y_OFFSET = (window.innerHeight - MINIMUM_OF_CANVAS_WIDTHHEIGHT) * 0.5;   
+    var w = this.autoresize ? window.innerWidth : 400;
+    var h = this.autoresize ? window.innerHeight : 400;
+    GetCanvas().width  = w;
+    GetCanvas().height = h;
+    MINIMUM_OF_CANVAS_WIDTHHEIGHT = Math.min(w, h);
+    CANVAS_X_OFFSET = (w - MINIMUM_OF_CANVAS_WIDTHHEIGHT) * 0.5;
+    CANVAS_Y_OFFSET = (h - MINIMUM_OF_CANVAS_WIDTHHEIGHT) * 0.5;   
   }
   
   function ScreenToCanvas(sx, sy) {
