@@ -363,7 +363,7 @@ function App() {
     window.addEventListener("touchstart", OnTouchStartCB, false);
     window.addEventListener("touchmove", OnTouchMoveCB, false);
     window.addEventListener("touchend", OnTouchEndCB, false);
-    this.autoresize = autoresize;
+    this.autoresize = autoresize != undefined ? autoresize : true;
     window.onresize = Resize;
     Resize();
     Reset();
