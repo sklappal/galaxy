@@ -508,7 +508,7 @@ vec2.lerp = function (out, a, b, t) {
  * Generates a random vector with the given scale
  *
  * @param {vec2} out the receiving vector
- * @param {Number} [scale] Length of the resulting vector. If ommitted, a unit vector will be returned
+ * @param {Number} [scale] Length of the resulting vector. If omitted, a unit vector will be returned
  * @returns {vec2} out
  */
 vec2.random = function (out, scale) {
@@ -1062,7 +1062,7 @@ vec3.lerp = function (out, a, b, t) {
  * Generates a random vector with the given scale
  *
  * @param {vec3} out the receiving vector
- * @param {Number} [scale] Length of the resulting vector. If ommitted, a unit vector will be returned
+ * @param {Number} [scale] Length of the resulting vector. If omitted, a unit vector will be returned
  * @returns {vec3} out
  */
 vec3.random = function (out, scale) {
@@ -1729,7 +1729,7 @@ vec4.lerp = function (out, a, b, t) {
  * Generates a random vector with the given scale
  *
  * @param {vec4} out the receiving vector
- * @param {Number} [scale] Length of the resulting vector. If ommitted, a unit vector will be returned
+ * @param {Number} [scale] Length of the resulting vector. If omitted, a unit vector will be returned
  * @returns {vec4} out
  */
 vec4.random = function (out, scale) {
