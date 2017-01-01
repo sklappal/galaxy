@@ -12,3 +12,6 @@ Touch support (rudimentary)
 - Panning with one finger
 - Zooming with pinching
 - Three fingers simultaneously cycle through the bodies in the follow mode
+
+
+![alt text](example.png)
